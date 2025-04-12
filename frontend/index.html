@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login | BALAJI ACTION</title>
+  <style>
+    :root {
+      --bg-light: linear-gradient(to right, #74ebd5, #ACB6E5);
+      --bg-dark: #2c3e50;
+      --box-light: white;
+      --box-dark: #34495e;
+      --text-light: #2d3436;
+      --text-dark: #ecf0f1;
+      --btn-bg-light: #0984e3;
+      --btn-bg-dark: #2980b9;
+      --btn-login-light: #00b894;
+      --btn-login-dark: #27ae60;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-light);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: all 0.3s ease;
+    }
+
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    header {
+      background-color: #2d3436;
+      padding: 12px 20px;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .theme-toggle {
+      background-color: transparent;
+      color: white;
+      border: 2px solid white;
+      padding: 5px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 10px;
+    }
+
+    .login-box {
+      background: var(--box-light);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+      transition: 0.3s ease;
+    }
+
+    body.dark .login-box {
+      background: var(--box-dark);
+      color: var(--text-dark);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .btn-group button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--btn-bg-light);
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+      transition: 0.3s ease;
+    }
+
+    body.dark .btn-group button {
+      background-color: var(--btn-bg-dark);
+    }
+
+    .login-form {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    input[type="text"], input[type="password"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    .login-form button {
+      background-color: var(--btn-login-light);
+      border: none;
+      color: white;
+      padding: 10px;
+      font-size: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    body.dark .login-form button {
+      background-color: var(--btn-login-dark);
+    }
+
+    .forgot {
+      text-align: right;
+      font-size: 13px;
+      margin-top: -10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      color: #0984e3;
+    }
+
+    .reset-form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .reset-form button {
+      background-color: #d63031;
+      color: white;
+    }
+
+    footer {
+      background-color: #2d3436;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    BALAJI ACTION BUILDEWELL PRIVATE LTD.
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Toggle</button>
+  </header>
+
+  <div class="container">
+    <div class="login-box">
+      <h2>Welcome</h2>
+
+      <div class="btn-group">
+        <button onclick="toggleForm('admin')">Admin Login</button>
+        <button onclick="toggleForm('user')">User Login</button>
+      </div>
+
+      <!-- Admin Login Form -->
+      <div id="adminForm" class="login-form">
+        <input type="text" id="adminUsername" placeholder="Admin Username">
+        <input type="password" id="adminPassword" placeholder="Admin Password">
+        <button onclick="adminLogin()">Login as Admin</button>
+        <div class="forgot" onclick="showReset('admin')">Forgot Password?</div>
+      </div>
+
+      <!-- User Login Form -->
+      <div id="userForm" class="login-form">
+        <input type="text" id="userUsername" placeholder="Username">
+        <input type="password" id="userPassword" placeholder="Password">
+        <button onclick="userLogin()">Login as User</button>
+        <div class="forgot" onclick="showReset('user')">Forgot Password?</div>
+      </div>
+
+      <!-- Reset Password Form -->
+      <div id="resetForm" class="reset-form">
+        <input type="text" id="resetUsername" placeholder="Enter Username">
+        <input type="password" id="newPassword" placeholder="Enter New Password">
+        <button onclick="resetPassword()">Reset Password</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    © ATHARVA CREATION
+  </footer>
+
+  <script>
+    let currentForm = "";
+
+    function toggleForm(type) {
+      document.getElementById("adminForm").style.display = "none";
+      document.getElementById("userForm").style.display = "none";
+      document.getElementById("resetForm").style.display = "none";
+      currentForm = type;
+      if (type === "admin") {
+        document.getElementById("adminForm").style.display = "flex";
+      } else {
+        document.getElementById("userForm").style.display = "flex";
+      }
+    }
+
+    function adminLogin() {
+      const username = document.getElementById("adminUsername").value;
+      const password = document.getElementById("adminPassword").value;
+      const storedAdminPass = localStorage.getItem("adminPassword") || "Akash@123";
+      if (username === "admin" && password === storedAdminPass) {
+        window.location.href = "admin.html";
+      } else {
+        alert("Invalid Admin Credentials");
+      }
+    }
+
+    function userLogin() {
+      const username = document.getElementById("userUsername").value;
+      const password = document.getElementById("userPassword").value;
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const match = users.find(u => u.username === username && u.password === password);
+      if (match) {
+        window.location.href = "view.html";
+      } else {
+        alert("Invalid User Credentials");
+      }
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+    }
+
+    function showReset(type) {
+      document.getElementById("resetForm").style.display = "flex";
+      currentForm = type;
+    }
+
+    function resetPassword() {
+      const uname = document.getElementById("resetUsername").value;
+      const newPass = document.getElementById("newPassword").value;
+
+      if (currentForm === "admin") {
+        if (uname === "admin") {
+          localStorage.setItem("adminPassword", newPass);
+          alert("Admin password updated.");
+        } else {
+          alert("Admin username incorrect.");
+        }
+      } else {
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+        const index = users.findIndex(u => u.username === uname);
+        if (index !== -1) {
+          users[index].password = newPass;
+          localStorage.setItem("users", JSON.stringify(users));
+          alert("User password updated.");
+        } else {
+          alert("User not found.");
+        }
+      }
+      document.getElementById("resetForm").style.display = "none";
+    }
+  </script>
+</body>
+</html>

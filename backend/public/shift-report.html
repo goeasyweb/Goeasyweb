@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SHIFT REPORT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .filters {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .filters label {
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    .filters input, .filters select {
+      margin-right: 20px;
+      padding: 5px;
+    }
+    .user-info {
+      text-align: right;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .user-info input {
+      padding: 5px;
+      text-transform: uppercase;
+      font-weight: normal;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    input[type="number"] {
+      width: 100px;
+    }
+    td[colspan] {
+      font-weight: bold;
+      background: #e9e9e9;
+    }
+    .highlight {
+      background: #f0fdf0;
+    }
+    .total-sap-row {
+      background: #d8e9ff;
+      font-weight: bold;
+    }
+    .save-btn {
+      margin-top: 20px;
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .save-btn:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+<h2>SHIFT REPORT</h2>
+
+<div class="filters">
+  <div>
+    <label>Date:</label>
+    <input type="date" id="reportDate" />
+  </div>
+  <div>
+    <label>Plant:</label>
+    <select id="plant">
+      <option value="C34A">C34A</option>
+      <option value="C2">C2</option>
+      <option value="C3">C3</option>
+    </select>
+  </div>
+  <div>
+    <label>Shift:</label>
+    <select id="shift">
+      <option value="A">A</option>
+      <option value="B">B</option>
+      <option value="C">C</option>
+      <option value="06:00-09:00">06:00 - 09:00</option>
+    </select>
+  </div>
+</div>
+
+<div class="user-info">
+  <label for="shiftPerson">Shift Person:</label>
+  <input type="text" id="shiftPerson" placeholder="ENTER NAME" />
+</div>
+
+<table id="reportTable">
+  <tr>
+    <th>Material</th>
+    <th>Received Bills by Security</th>
+    <th>SAP Done</th>
+    <th>Pending</th>
+  </tr>
+  <tr>
+    <td>WOOD</td>
+    <td><input type="number" id="woodReceived" /></td>
+    <td><input type="number" id="woodSAP" /></td>
+    <td><input type="number" id="woodPending" readonly /></td>
+  </tr>
+  <tr>
+    <td>STORE</td>
+    <td><input type="number" id="storeReceived" /></td>
+    <td><input type="number" id="storeSAP" /></td>
+    <td><input type="number" id="storePending" readonly /></td>
+  </tr>
+  <tr>
+    <td>DISPATCH</td>
+    <td><input type="number" id="dispatchReceived" /></td>
+    <td><input type="number" id="dispatchSAP" /></td>
+    <td><input type="number" id="dispatchPending" readonly /></td>
+  </tr>
+  <tr class="total-sap-row">
+    <td>Total SAP Done</td>
+    <td colspan="3" id="totalSapDone">0</td>
+  </tr>
+  <tr class="highlight">
+    <td>Total Token Card</td>
+    <td colspan="3"><input type="number" id="totalTokens" /></td>
+  </tr>
+  <tr class="highlight">
+    <td>In Stock Token Card</td>
+    <td colspan="3"><input type="number" id="inStockTokens" /></td>
+  </tr>
+  <tr class="highlight">
+    <td>Issued Token Card</td>
+    <td colspan="3" id="issuedTokens">0</td>
+  </tr>
+</table>
+
+<button class="save-btn" onclick="saveReport()">SAVE REPORT</button>
+
+<script>
+  // Set today's date automatically
+  document.getElementById("reportDate").valueAsDate = new Date();
+
+  // Set shift person name from localStorage if available
+  const loggedUser = (localStorage.getItem("loggedInUser") || "").toUpperCase();
+  document.getElementById("shiftPerson").value = loggedUser;
+
+  // Calculate SAP and token logic
+  const calculateAll = () => {
+    const woodReceived = parseInt(document.getElementById("woodReceived").value) || 0;
+    const woodSAP = parseInt(document.getElementById("woodSAP").value) || 0;
+    document.getElementById("woodPending").value = woodReceived - woodSAP;
+
+    const storeReceived = parseInt(document.getElementById("storeReceived").value) || 0;
+    const storeSAP = parseInt(document.getElementById("storeSAP").value) || 0;
+    document.getElementById("storePending").value = storeReceived - storeSAP;
+
+    const dispatchReceived = parseInt(document.getElementById("dispatchReceived").value) || 0;
+    const dispatchSAP = parseInt(document.getElementById("dispatchSAP").value) || 0;
+    document.getElementById("dispatchPending").value = dispatchReceived - dispatchSAP;
+
+    const totalSAP = woodSAP + storeSAP + dispatchSAP;
+    document.getElementById("totalSapDone").textContent = totalSAP;
+
+    const totalTokens = parseInt(document.getElementById("totalTokens").value) || 0;
+    const inStockTokens = parseInt(document.getElementById("inStockTokens").value) || 0;
+    const issued = totalTokens - inStockTokens;
+    document.getElementById("issuedTokens").textContent = issued;
+  };
+
+  // Recalculate on number input change
+  document.querySelectorAll("input[type=number]").forEach(input => {
+    input.addEventListener("input", calculateAll);
+  });
+
+  // Always uppercase for Shift Person name
+  document.getElementById("shiftPerson").addEventListener("input", function () {
+    this.value = this.value.toUpperCase();
+  });
+
+  // Save logic
+  function saveReport() {
+    calculateAll();
+
+    const data = {
+      date: document.getElementById("reportDate").value,
+      plant: document.getElementById("plant").value,
+      shift: document.getElementById("shift").value,
+      user: document.getElementById("shiftPerson").value.toUpperCase(),
+      wood: {
+        received: document.getElementById("woodReceived").value,
+        sap: document.getElementById("woodSAP").value,
+        pending: document.getElementById("woodPending").value
+      },
+      store: {
+        received: document.getElementById("storeReceived").value,
+        sap: document.getElementById("storeSAP").value,
+        pending: document.getElementById("storePending").value
+      },
+      dispatch: {
+        received: document.getElementById("dispatchReceived").value,
+        sap: document.getElementById("dispatchSAP").value,
+        pending: document.getElementById("dispatchPending").value
+      },
+      totalSapDone: document.getElementById("totalSapDone").textContent,
+      totalTokens: document.getElementById("totalTokens").value,
+      inStockTokens: document.getElementById("inStockTokens").value,
+      issuedTokens: document.getElementById("issuedTokens").textContent
+    };
+
+    let reports = JSON.parse(localStorage.getItem("shiftReports") || "[]");
+    reports.push(data);
+    localStorage.setItem("shiftReports", JSON.stringify(reports));
+
+    alert("Shift Report Saved Successfully!");
+    window.location.href = "view.html"; // or admin.html depending on your setup
+  }
+</script>
+
+</body>
+</html>

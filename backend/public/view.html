@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View Page</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      transition: background-color 0.5s, color 0.5s;
+    }
+
+    header, footer {
+      background-color: #222;
+      color: white;
+      text-align: center;
+      padding: 8px;
+      position: relative;
+    }
+
+    .header-title {
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .header-title marquee {
+      font-size: 18px;
+    }
+
+    .date-time {
+      position: absolute;
+      right: 20px;
+      top: 10px;
+      font-size: 12px;
+    }
+
+    .top-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 0;
+    }
+
+    button {
+      padding: 10px 18px;
+      background-color: #00b894;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background-color: #019374;
+    }
+
+    .red { background-color: crimson; }
+    .blue { background-color: #0984e3; }
+
+    .dark-mode {
+      background-color: #000 !important;
+      color: #fff !important;
+    }
+
+    .container {
+      padding: 10px;
+      text-align: center;
+    }
+
+    .filter-section {
+      display: inline-block;
+      margin: 10px;
+      vertical-align: middle;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      background: white;
+      table-layout: auto;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: #ddd;
+      z-index: 1;
+    }
+
+    .copy-btn {
+      background-color: #d63031;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .non-copy-btn {
+      background-color: #b2bec3;
+      color: black;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+
+    #homeImage {
+      max-width: 80%;
+      margin-top: 20px;
+      border-radius: 16px;
+      border: 6px ridge #999;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .compact-table {
+      font-size: 12px;
+    }
+
+    .compact-table th,
+    .compact-table td {
+      padding: 3px 6px;
+    }
+
+    footer {
+      font-size: 12px;
+      padding: 6px;
+      background-color: #222;
+      color: white;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+
+    .search-bar {
+      margin: 10px 0;
+    }
+
+    input[type="text"] {
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-title">
+      <marquee behavior="scroll" direction="left">BALAJI ACTION BUILDEWELL PRIVATE LTD.</marquee>
+    </div>
+    <div class="date-time" id="dateTime"></div>
+  </header>
+
+  <div class="container">
+    <div class="top-buttons">
+      <button class="blue" onclick="goHome()">Back to Home</button>
+      <button onclick="showTable('Wood PO')">Wood PO</button>
+      <button onclick="showTable('Contacts')">Contacts</button>
+      <button onclick="showTable('ID Password')">ID Password</button>
+      <button onclick="showTable('Shift Schedule')">Shift Schedule</button>
+      <button onclick="showTable('Intercom Number')">Intercom Number</button>
+      <button onclick="toggleDarkMode()">Dark Mode</button>
+      <button class="blue" onclick="window.print()">Print</button>
+      <button class="blue" onclick="window.location.href='shift-report.html'">Shift Report</button>
+      <button class="red" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="filter-section" id="filterSection" style="display:none;">
+      <label>Filter by Material:</label>
+      <select id="materialFilter" onchange="applyFilter()"></select>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search in table..." onkeyup="searchTable()" />
+    </div>
+
+    <div id="tableContainer"></div>
+    <img id="homeImage" />
+  </div>
+
+  <footer>
+    <p>© ATHARVA CREATION</p>
+  </footer>
+
+  <script>
+    const tableContainer = document.getElementById("tableContainer");
+    const homeImage = document.getElementById("homeImage");
+
+    window.onload = () => {
+      const img = localStorage.getItem("home_image");
+      if (img) homeImage.src = img;
+
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+    };
+
+    function updateDateTime() {
+      document.getElementById("dateTime").textContent = new Date().toLocaleString();
+    }
+
+    function logout() {
+      window.location.href = "index.html";
+    }
+
+    function goHome() {
+      tableContainer.innerHTML = "";
+      homeImage.style.display = "block";
+      document.getElementById("filterSection").style.display = "none";
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function showTable(category) {
+      homeImage.style.display = "none";
+      document.getElementById("filterSection").style.display = "none";
+      const data = JSON.parse(localStorage.getItem("excel_" + category) || "null");
+      if (!data) return alert("No data uploaded for this category.");
+      renderTable(data, category);
+    }
+
+    function renderTable(data, category) {
+      let materialSet = new Set();
+      let tableClass = category === "Shift Schedule" ? "compact-table" : "";
+
+      let html = `<table class="${tableClass}"><thead><tr>`;
+      data[0].forEach(cell => html += `<th>${cell}</th>`);
+      html += "</tr></thead><tbody>";
+
+      for (let i = 1; i < data.length; i++) {
+        let row = data[i];
+        let color = "";
+
+        if (category === "Wood PO") {
+          const location = (row[1] || "").toLowerCase();
+          if (location.includes("sitapur")) color = "magenta";
+          else if (location.includes("rampur")) color = "lightgreen";
+          else color = "yellow";
+          materialSet.add(row[3]);
+        }
+
+        html += `<tr style="background-color:${color}">`;
+        for (let j = 0; j < row.length; j++) {
+          let cell = row[j] || "";
+          let cellStyle = "";
+
+          if (category === "Shift Schedule") {
+            if (cell === "R") cellStyle = "background-color:lightgreen";
+            else if (cell === "L") cellStyle = "background-color:tomato";
+            else if (cell === "G") cellStyle = "background-color:yellow";
+          }
+
+          if (category === "Wood PO" && j === 0) {
+            html += `<td><button class="copy-btn" onclick="copyText('${cell}', 'PO Copied Successfully')">${cell}</button></td>`;
+          } else if ((category === "Contacts" || category === "Intercom Number") && (j === 0 || j === 1)) {
+            html += `<td><button class="non-copy-btn">${cell}</button></td>`;
+          } else if (category === "ID Password" && j === 1) {
+            html += `<td><button class="copy-btn" onclick="copyText('${cell}', 'Password Copied')">${cell}</button></td>`;
+          } else {
+            html += `<td style="${cellStyle}">${cell}</td>`;
+          }
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      tableContainer.innerHTML = html;
+
+      if (category === "Wood PO") {
+        const filter = document.getElementById("materialFilter");
+        filter.innerHTML = '<option value="All">All</option>';
+        materialSet.forEach(m => {
+          if (m) filter.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        document.getElementById("filterSection").style.display = "inline-block";
+      }
+    }
+
+    function applyFilter() {
+      const selected = document.getElementById("materialFilter").value;
+      const data = JSON.parse(localStorage.getItem("excel_Wood PO") || "null");
+      if (!data) return;
+
+      if (selected === "All") {
+        renderTable(data, "Wood PO");
+        return;
+      }
+
+      const header = data[0];
+      const rows = data.slice(1).filter(row => row[3] === selected);
+      renderTable([header, ...rows], "Wood PO");
+    }
+
+    function copyText(text, msg) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert(msg);
+      });
+    }
+
+    function searchTable() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("table tbody tr");
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+      });
+    }
+  </script>
+</body>
+</html>

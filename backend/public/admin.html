@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
+    header, footer {
+      background-color: #222;
+      color: white;
+      text-align: center;
+      padding: 12px;
+    }
+    .container {
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    .section {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    input[type="text"], input[type="password"], input[type="file"] {
+      padding: 8px;
+      margin: 5px;
+      width: 200px;
+    }
+    select {
+      padding: 6px;
+      margin: 5px;
+    }
+    button {
+      background-color: teal;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    button.red {
+      background-color: crimson;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>BALAJI ACTION BUILDEWELL PRIVATE LTD.</h2>
+        <button class="red" onclick="logout()">Logout</button>
+  </header>
+
+  <div class="container">
+    <!-- USER MANAGEMENT -->
+    <div class="section">
+      <h3>User Management</h3>
+      <input type="text" id="newUsername" placeholder="Username">
+      <input type="password" id="newPassword" placeholder="Password">
+      <button onclick="createUser()">Create User</button>
+      <table id="userTable"></table>
+    </div>
+
+    <!-- EXCEL UPLOAD -->
+    <div class="section">
+      <h3>Upload Excel File</h3>
+      <select id="categorySelect">
+        <option value="Wood PO">Wood PO</option>
+        <option value="Contacts">Contacts</option>
+        <option value="ID Password">ID Password</option>
+        <option value="Shift Schedule">Shift Schedule</option>
+        <option value="Intercom Number">Intercom Number</option>
+      </select>
+      <input type="file" id="excelFile">
+      <button onclick="uploadExcel()">Upload</button>
+      <button onclick="deleteExcel()">Delete</button>
+    </div>
+
+    <!-- IMAGE UPLOAD -->
+    <div class="section">
+      <h3>Upload Image</h3>
+      <input type="file" id="imageFile" accept="image/*">
+      <button onclick="uploadImage()">Upload Image</button>
+    </div>
+
+    <!-- ADMIN PASSWORD -->
+    <div class="section">
+      <h3>Change Admin Password</h3>
+      <input type="password" id="oldPass" placeholder="Old Password">
+      <input type="password" id="newPass" placeholder="New Password">
+      <button onclick="changeAdminPass()">Change</button>
+    </div>
+
+   
+  </div>
+
+  <footer>
+    <p>SHIFT REPORT</p>
+  </footer>
+
+  <script>
+    const ADMIN_CREDENTIALS = 'admin_credentials';
+
+    window.onload = () => {
+      if (!localStorage.getItem(ADMIN_CREDENTIALS)) {
+        localStorage.setItem(ADMIN_CREDENTIALS, JSON.stringify({ username: "admin", password: "Akash@123" }));
+      }
+      loadUsers();
+    }
+
+    function logout() {
+      window.location.href = 'index.html';
+    }
+
+    function createUser() {
+      const username = document.getElementById("newUsername").value.trim();
+      const password = document.getElementById("newPassword").value.trim();
+      if (!username || !password) return alert("Fill all fields");
+      let users = JSON.parse(localStorage.getItem("users") || "[]");
+      if (users.find(u => u.username === username)) return alert("User exists");
+      users.push({ username, password });
+      localStorage.setItem("users", JSON.stringify(users));
+      loadUsers();
+    }
+
+    function loadUsers() {
+      let users = JSON.parse(localStorage.getItem("users") || "[]");
+      let table = `<tr><th>Username</th><th>Password</th><th>Change Password</th><th>Delete</th></tr>`;
+      users.forEach((user, i) => {
+        table += `<tr>
+          <td>${user.username}</td>
+          <td>${user.password}</td>
+          <td><button onclick="changePassword(${i})">Change</button></td>
+          <td><button onclick="deleteUser(${i})" class="red">Delete</button></td>
+        </tr>`;
+      });
+      document.getElementById("userTable").innerHTML = table;
+    }
+
+    function changePassword(index) {
+      const newPass = prompt("Enter new password:");
+      if (newPass) {
+        let users = JSON.parse(localStorage.getItem("users") || "[]");
+        users[index].password = newPass;
+        localStorage.setItem("users", JSON.stringify(users));
+        loadUsers();
+      }
+    }
+
+    function deleteUser(index) {
+      if (confirm("Delete user?")) {
+        let users = JSON.parse(localStorage.getItem("users") || "[]");
+        users.splice(index, 1);
+        localStorage.setItem("users", JSON.stringify(users));
+        loadUsers();
+      }
+    }
+
+    function uploadExcel() {
+      const file = document.getElementById("excelFile").files[0];
+      const category = document.getElementById("categorySelect").value;
+      if (!file || file.name.slice(-5) !== ".xlsx") return alert("Upload a valid .xlsx file");
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        localStorage.setItem(`excel_${category}`, JSON.stringify(json));
+        alert(`${category} uploaded`);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function deleteExcel() {
+      const category = document.getElementById("categorySelect").value;
+      localStorage.removeItem(`excel_${category}`);
+      alert(`${category} deleted`);
+    }
+
+    function uploadImage() {
+      const file = document.getElementById("imageFile").files[0];
+      if (!file) return alert("No image selected");
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        localStorage.setItem("home_image", e.target.result);
+        alert("Image uploaded");
+      }
+      reader.readAsDataURL(file);
+    }
+
+    function changeAdminPass() {
+      const oldPass = document.getElementById("oldPass").value;
+      const newPass = document.getElementById("newPass").value;
+      const creds = JSON.parse(localStorage.getItem(ADMIN_CREDENTIALS));
+      if (oldPass !== creds.password) return alert("Old password incorrect");
+      creds.password = newPass;
+      localStorage.setItem(ADMIN_CREDENTIALS, JSON.stringify(creds));
+      alert("Password changed");
+    }
+  </script>
+  <div class="section">
+
+
+  <div class="filter-group">
+    <label>Date: <input type="date" id="filterDate"></label>
+    <label>Plant:
+      <select id="filterPlant">
+        <option value="">All</option>
+        <option value="C34A">C34A</option>
+        <option value="C2">C2</option>
+        <option value="C3">C3</option>
+      </select>
+    </label>
+    <label>Shift:
+      <select id="filterShift">
+        <option value="">All</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="06:00-09:00">06:00 - 09:00</option>
+      </select>
+    </label>
+    <button onclick="renderReports()">Search</button>
+  </div>
+
+  <div id="reportContainer"></div>
+</div>
+
+<footer>
+  &copy; ATHARVA CREATION
+</footer>
+
+<script>
+  function renderReports() {
+    const reports = JSON.parse(localStorage.getItem("shiftReports") || "[]");
+    const container = document.getElementById("reportContainer");
+    container.innerHTML = "";
+
+    const filterDate = document.getElementById("filterDate").value;
+    const filterPlant = document.getElementById("filterPlant").value;
+    const filterShift = document.getElementById("filterShift").value;
+
+    const filtered = reports.filter(r => {
+      return (!filterDate || r.date === filterDate) &&
+             (!filterPlant || r.plant === filterPlant) &&
+             (!filterShift || r.shift === filterShift);
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = "<p>No reports found for selected filters.</p>";
+      return;
+    }
+
+    filtered.forEach(report => {
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <tr><th colspan="4">Date: ${report.date} | Plant: ${report.plant} | Shift: ${report.shift} | User: ${report.user}</th></tr>
+        <tr>
+          <th>Material</th>
+          <th>Received Bills by Security</th>
+          <th>SAP Done</th>
+          <th>Pending</th>
+        </tr>
+        <tr>
+          <td>WOOD</td>
+          <td>${report.wood.received}</td>
+          <td>${report.wood.sap}</td>
+          <td>${report.wood.pending}</td>
+        </tr>
+        <tr>
+          <td>STORE</td>
+          <td>${report.store.received}</td>
+          <td>${report.store.sap}</td>
+          <td>${report.store.pending}</td>
+        </tr>
+        <tr>
+          <td>DISPATCH</td>
+          <td>${report.dispatch.received}</td>
+          <td>${report.dispatch.sap}</td>
+          <td>${report.dispatch.pending}</td>
+        </tr>
+        <tr style="background:#d8e9ff; font-weight:bold;">
+          <td>Total SAP Done</td>
+          <td colspan="3">${report.totalSapDone}</td>
+        </tr>
+        <tr style="background:#f0fdf0;">
+          <td>Total Token Card</td>
+          <td colspan="3">${report.totalTokens}</td>
+        </tr>
+        <tr style="background:#f0fdf0;">
+          <td>In Stock Token Card</td>
+          <td colspan="3">${report.inStockTokens}</td>
+        </tr>
+        <tr style="background:#f0fdf0;">
+          <td>Issued Token Card</td>
+          <td colspan="3">${report.issuedTokens}</td>
+        </tr>
+      `;
+      container.appendChild(table);
+    });
+  }
+
+  // Auto render all reports initially
+  renderReports();
+</script>
+
+</body>
+</html>
