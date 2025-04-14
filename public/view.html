@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View Page</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* [Your existing styles remain unchanged] */
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-title">
+      <marquee behavior="scroll" direction="left">BALAJI ACTION BUILDEWELL PRIVATE LTD.</marquee>
+    </div>
+    <div class="date-time" id="dateTime"></div>
+  </header>
+
+  <div class="container">
+    <div class="top-buttons">
+      <button class="blue" onclick="goHome()">Back to Home</button>
+      <button onclick="fetchAndShow('Wood PO')">Wood PO</button>
+      <button onclick="fetchAndShow('Contacts')">Contacts</button>
+      <button onclick="fetchAndShow('ID Password')">ID Password</button>
+      <button onclick="fetchAndShow('Shift Schedule')">Shift Schedule</button>
+      <button onclick="fetchAndShow('Intercom Number')">Intercom Number</button>
+      <button onclick="toggleDarkMode()">Dark Mode</button>
+      <button class="blue" onclick="window.print()">Print</button>
+      <button class="blue" onclick="window.location.href='report-register.html'">All Register</button>
+      <button class="red" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="filter-section" id="filterSection" style="display:none;">
+      <label>Filter by Material:</label>
+      <select id="materialFilter" onchange="applyFilter()"></select>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search in table..." onkeyup="searchTable()" />
+    </div>
+
+    <div id="tableContainer"></div>
+    <img id="homeImage" />
+
+  </div>
+
+  <footer>
+    <p>© ATHARVA CREATION</p>
+  </footer>
+
+  <script>
+    const tableContainer = document.getElementById("tableContainer");
+    const homeImage = document.getElementById("homeImage");
+    let fullData = []; // for filtering
+
+    window.onload = () => {
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+
+      fetch("/api/view/image")
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.image) homeImage.src = data.image;
+        });
+    };
+
+    function updateDateTime() {
+      document.getElementById("dateTime").textContent = new Date().toLocaleString();
+    }
+
+    function logout() {
+      window.location.href = "index.html";
+    }
+
+    function goHome() {
+      tableContainer.innerHTML = "";
+      homeImage.style.display = "block";
+      document.getElementById("filterSection").style.display = "none";
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function fetchAndShow(category) {
+      homeImage.style.display = "none";
+      document.getElementById("filterSection").style.display = "none";
+
+      fetch(`/api/excel/${encodeURIComponent(category)}`)
+        .then(res => res.json())
+        .then(json => {
+          if (!json || !json.data || json.data.length === 0) return alert("No data found.");
+          fullData = json.data;
+          renderTable(fullData, category);
+        })
+        .catch(err => {
+          alert("Error fetching data.");
+          console.error(err);
+        });
+    }
+
+    function renderTable(data, category) {
+      let materialSet = new Set();
+      let tableClass = category === "Shift Schedule" ? "compact-table" : "";
+
+      let html = `<table class="${tableClass}"><thead><tr>`;
+      data[0].forEach(cell => html += `<th>${cell}</th>`);
+      html += "</tr></thead><tbody>";
+
+      for (let i = 1; i < data.length; i++) {
+        let row = data[i];
+        let color = "";
+
+        if (category === "Wood PO") {
+          const location = (row[1] || "").toLowerCase();
+          if (location.includes("sitapur")) color = "magenta";
+          else if (location.includes("rampur")) color = "lightgreen";
+          else color = "yellow";
+          materialSet.add(row[3]);
+        }
+
+        html += `<tr style="background-color:${color}">`;
+        for (let j = 0; j < row.length; j++) {
+          let cell = row[j] || "";
+          let cellStyle = "";
+
+          if (category === "Shift Schedule") {
+            if (cell === "R") cellStyle = "background-color:lightgreen";
+            else if (cell === "L") cellStyle = "background-color:tomato";
+            else if (cell === "G") cellStyle = "background-color:yellow";
+          }
+
+          if (category === "Wood PO" && j === 0) {
+            html += `<td><button class="copy-btn" onclick="copyText('${cell}', 'PO Copied Successfully')">${cell}</button></td>`;
+          } else if ((category === "Contacts" || category === "Intercom Number") && (j === 0 || j === 1)) {
+            html += `<td><button class="non-copy-btn">${cell}</button></td>`;
+          } else if (category === "ID Password" && j === 1) {
+            html += `<td><button class="copy-btn" onclick="copyText('${cell}', 'Password Copied')">${cell}</button></td>`;
+          } else {
+            html += `<td style="${cellStyle}">${cell}</td>`;
+          }
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      tableContainer.innerHTML = html;
+
+      if (category === "Wood PO") {
+        const filter = document.getElementById("materialFilter");
+        filter.innerHTML = '<option value="All">All</option>';
+        materialSet.forEach(m => {
+          if (m) filter.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        document.getElementById("filterSection").style.display = "inline-block";
+      }
+    }
+
+    function applyFilter() {
+      const selected = document.getElementById("materialFilter").value;
+      if (selected === "All") {
+        renderTable(fullData, "Wood PO");
+        return;
+      }
+
+      const header = fullData[0];
+      const rows = fullData.slice(1).filter(row => row[3] === selected);
+      renderTable([header, ...rows], "Wood PO");
+    }
+
+    function copyText(text, msg) {
+      navigator.clipboard.writeText(text).then(() => alert(msg));
+    }
+
+    function searchTable() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("table tbody tr");
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+      });
+    }
+  </script>
+</body>
+</html>

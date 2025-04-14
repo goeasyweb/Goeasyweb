@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome - BALAJI ACTION BUILDEWELL PRIVATE LTD</title>
+  <style>
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header, footer {
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: fadeIn 1s ease-in-out;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #004080;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #004080;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0066cc;
+    }
+    input {
+      display: block;
+      margin: 10px auto;
+      padding: 8px;
+      width: 90%;
+      border-radius: 5px;
+      border: 1px solid #888;
+    }
+    .hidden {
+      display: none;
+    }
+    a {
+      font-size: 13px;
+      color: #004080;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>BALAJI ACTION BUILDEWELL PRIVATE LTD.</h1>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>Welcome</h2>
+    <button onclick="toggleLogin('admin')">Admin Login</button>
+    <button onclick="toggleLogin('user')">User Login</button>
+
+    <!-- Admin Login -->
+    <div id="adminLogin" class="hidden">
+      <h3>Admin Login</h3>
+      <input type="text" id="adminUser" placeholder="Username">
+      <input type="password" id="adminPass" placeholder="Password">
+      <button onclick="loginAdmin()">Login as Admin</button>
+    </div>
+
+    <!-- User Login -->
+    <div id="userLogin" class="hidden">
+      <h3>User Login</h3>
+      <input type="text" id="userUser" placeholder="Username">
+      <input type="password" id="userPass" placeholder="Password">
+      <button onclick="loginUser()">Login as User</button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p>&copy; ATHARVA CREATION</p>
+</footer>
+
+<script>
+  function toggleLogin(type) {
+    document.getElementById("adminLogin").classList.add("hidden");
+    document.getElementById("userLogin").classList.add("hidden");
+    if (type === "admin") document.getElementById("adminLogin").classList.remove("hidden");
+    if (type === "user") document.getElementById("userLogin").classList.remove("hidden");
+  }
+
+  async function loginAdmin() {
+    const username = document.getElementById("adminUser").value.trim();
+    const password = document.getElementById("adminPass").value;
+
+    const res = await fetch('/api/login/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = 'admin.html';
+    } else {
+      alert(data.message || "Admin login failed");
+    }
+  }
+
+  async function loginUser() {
+    const username = document.getElementById("userUser").value.trim();
+    const password = document.getElementById("userPass").value;
+
+    const res = await fetch('/api/login/user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = 'view.html';
+    } else {
+      alert(data.message || "User login failed");
+    }
+  }
+</script>
+
+</body>
+</html>

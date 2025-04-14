@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* [Your existing CSS styles remain unchanged] */
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>BALAJI ACTION BUILDEWELL PRIVATE LTD. - ADMIN PANEL</h2>
+  <button class="red" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+  <!-- User Management -->
+  <div class="section">
+    <h3>User Management</h3>
+    <input type="text" id="newUsername" placeholder="Username">
+    <input type="password" id="newPassword" placeholder="Password">
+    <button onclick="createUser()">Create User</button>
+    <table id="userTable"></table>
+  </div>
+
+  <!-- Excel Upload -->
+  <div class="section">
+    <h3>Upload Excel File</h3>
+    <select id="categorySelect">
+      <option value="Wood PO">Wood PO</option>
+      <option value="Intercom">Intercom</option>
+      <option value="Contacts">Contacts</option>
+      <option value="Shift Schedule">Shift Schedule</option>
+      <option value="ID Password">ID Password</option>
+    </select>
+    <input type="file" id="excelFile">
+    <button onclick="uploadExcel()">Upload</button>
+    <button onclick="deleteExcel()">Delete</button>
+  </div>
+
+  <!-- Image Upload -->
+  <div class="section">
+    <h3>Upload Image</h3>
+    <input type="file" id="imageFile" accept="image/*">
+    <button onclick="uploadImage()">Upload Image</button>
+  </div>
+
+  <!-- Admin Password Change -->
+  <div class="section">
+    <h3>Change Admin Password</h3>
+    <input type="password" id="oldPass" placeholder="Old Password">
+    <input type="password" id="newPass" placeholder="New Password">
+    <button onclick="changeAdminPass()">Change</button>
+  </div>
+
+  <!-- Report Sections -->
+  <div id="reportSections"></div>
+
+</div>
+
+<footer>
+  &copy; ATHARVA CREATION
+</footer>
+
+<script>
+  const reportConfigs = [
+    { key: 'shiftReports', title: 'SHIFT REPORT', filter: true },
+    { key: 'woodBills', title: 'WOOD BILL SUBMIT', filter: 'plant' },
+    { key: 'methanolReports', title: 'METHANOL WEIGHT REGISTER', filter: true },
+    { key: 'longBodyReports', title: 'LONG BODY WEIGHT CHECK REPORT', filter: true },
+  ];
+
+  window.onload = () => {
+    loadUsers();
+    renderReportSections();
+  };
+
+  function logout() {
+    fetch('/api/logout', { method: 'POST' })
+      .then(() => window.location.href = 'index.html')
+      .catch(err => alert('Logout failed'));
+  }
+
+  function createUser() {
+    const username = document.getElementById("newUsername").value.trim();
+    const password = document.getElementById("newPassword").value.trim();
+    if (!username || !password) return alert("Fill all fields");
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) loadUsers();
+      else alert(data.message || "User creation failed");
+    });
+  }
+
+  function loadUsers() {
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(users => {
+        let table = `<tr><th>Username</th><th>Change</th><th>Delete</th></tr>`;
+        users.forEach((u, i) => {
+          table += `<tr>
+            <td>${u.username}</td>
+            <td><button onclick="changePassword('${u.username}')">Change</button></td>
+            <td><button class="red" onclick="deleteUser('${u.username}')">Delete</button></td>
+          </tr>`;
+        });
+        document.getElementById("userTable").innerHTML = table;
+      });
+  }
+
+  function changePassword(username) {
+    const newPass = prompt("New password:");
+    if (newPass) {
+      fetch(`/api/users/${username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPass })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) loadUsers();
+        else alert(data.message || "Password change failed");
+      });
+    }
+  }
+
+  function deleteUser(username) {
+    if (confirm("Delete this user?")) {
+      fetch(`/api/users/${username}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) loadUsers();
+          else alert(data.message || "User deletion failed");
+        });
+    }
+  }
+
+  function uploadExcel() {
+    const file = document.getElementById("excelFile").files[0];
+    const category = document.getElementById("categorySelect").value;
+    if (!file || !file.name.endsWith(".xlsx")) return alert("Upload a valid .xlsx file");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      fetch(`/api/excel/${encodeURIComponent(category)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: json })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) alert(`${category} uploaded`);
+        else alert(data.message || "Upload failed");
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function deleteExcel() {
+    const category = document.getElementById("categorySelect").value;
+    fetch(`/api/excel/${encodeURIComponent(category)}`, { method: 'DELETE' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) alert(`${category} deleted`);
+        else alert(data.message || "Deletion failed");
+      });
+  }
+
+  function uploadImage() {
+    const file = document.getElementById("imageFile").files[0];
+    if (!file) return alert("No image selected");
+    const formData = new FormData();
+    formData.append('image', file);
+    fetch('/api/image', {
+      method: 'POST',
+      body
+::contentReference[oaicite:0]{index=0}
+ 
+      : formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) alert("Image uploaded successfully");
+      else alert(data.message || "Image upload failed");
+    });
+  }
+
+  function changeAdminPass() {
+    const oldPass = document.getElementById("oldPass").value.trim();
+    const newPass = document.getElementById("newPass").value.trim();
+    if (!oldPass || !newPass) return alert("Fill both fields");
+    fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) alert("Password changed");
+      else alert(data.message || "Failed to change password");
+    });
+  }
+
+  function renderReportSections() {
+    const container = document.getElementById("reportSections");
+    reportConfigs.forEach(cfg => {
+      const div = document.createElement("div");
+      div.className = "section";
+      div.innerHTML = `
+        <h3>${cfg.title}</h3>
+        ${cfg.filter === true ? `
+          <input type="date" id="${cfg.key}_date">
+          <input type="text" id="${cfg.key}_plant" placeholder="Plant">
+          <input type="text" id="${cfg.key}_shift" placeholder="Shift">
+        ` : cfg.filter === 'plant' ? `
+          <input type="text" id="${cfg.key}_plant" placeholder="Plant">
+        ` : ''}
+        <button onclick="loadReport('${cfg.key}')">Load</button>
+        <button onclick="exportToExcel('${cfg.key}')">Export to Excel</button>
+        <table id="${cfg.key}_table"></table>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function loadReport(key) {
+    let url = `/api/reports/${key}`;
+    const date = document.getElementById(`${key}_date`)?.value;
+    const plant = document.getElementById(`${key}_plant`)?.value;
+    const shift = document.getElementById(`${key}_shift`)?.value;
+
+    const params = new URLSearchParams();
+    if (date) params.append("date", date);
+    if (plant) params.append("plant", plant);
+    if (shift) params.append("shift", shift);
+
+    if ([...params].length) url += `?${params.toString()}`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const table = document.getElementById(`${key}_table`);
+        if (!data || data.length === 0) {
+          table.innerHTML = "<tr><td>No data found</td></tr>";
+          return;
+        }
+        const headers = Object.keys(data[0]);
+        let html = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+        data.forEach(row => {
+          html += "<tr>" + headers.map(h => `<td>${row[h]}</td>`).join("") + "</tr>";
+        });
+        table.innerHTML = html;
+      });
+  }
+
+  function exportToExcel(key) {
+    const table = document.getElementById(`${key}_table`);
+    if (!table || table.rows.length === 0) return alert("No data to export");
+    const wb = XLSX.utils.table_to_book(table);
+    XLSX.writeFile(wb, `${key}.xlsx`);
+  }
+</script>
+
+</body>
+</html>

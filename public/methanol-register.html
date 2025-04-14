@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Methanol Weight Register</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 10px;
+      text-align: center;
+    }
+    .saved {
+      background-color: #00ff40;
+    }
+    .greenButton {
+      background-color: green;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      font-weight: bold;
+    }
+    button.saveBtn {
+      padding: 6px 12px;
+    }
+
+    input, select {
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Methanol Weight Register</h2>
+
+<!-- Buttons -->
+<button onclick="addRow()">Add Row</button>
+<button onclick="openRegister()">View Register</button>
+<button onclick="exportToCSV()">Export to CSV</button>
+
+<!-- Main Data Entry Table -->
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th>S.No.</th>
+      <th>Date</th>
+      <th>Vehicle No.</th>
+      <th>Material Name</th>
+      <th>Outside Weight(Kg.)</th>
+      <th>100MT Weight(Kg.)</th>
+      <th>Name</th>
+      <th>Save</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let currentRow = 0;
+  const STORAGE_KEY = "registerData";
+  const SAVED_ROWS_KEY = "savedRowIndexes";
+
+  function addRow() {
+    const table = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+    const row = table.insertRow();
+    const rowIndex = currentRow;
+
+    row.insertCell(0).textContent = rowIndex + 1;
+    row.insertCell(1).innerHTML = `<input type="date">`;
+    row.insertCell(2).innerHTML = `<input type="text">`;
+    row.insertCell(3).innerHTML = `<input type="text" value="METHNOL" readonly>`;
+    row.insertCell(4).innerHTML = `<input type="text">`;
+    row.insertCell(5).innerHTML = `<input type="number">`;
+    row.insertCell(6).innerHTML = `<input type="text">`;
+
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save";
+    saveBtn.classList.add("saveBtn");
+    saveBtn.onclick = () => saveRow(row, rowIndex);
+    row.insertCell(7).appendChild(saveBtn);
+
+    currentRow++;
+  }
+
+  function saveRow(row, index) {
+    const inputs = row.querySelectorAll("input, select");
+    const rowData = Array.from(inputs).map(inp => inp.value.toUpperCase());
+
+    let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    savedData[index] = rowData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+
+    let savedIndexes = JSON.parse(localStorage.getItem(SAVED_ROWS_KEY)) || [];
+    if (!savedIndexes.includes(index)) {
+      savedIndexes.push(index);
+      localStorage.setItem(SAVED_ROWS_KEY, JSON.stringify(savedIndexes));
+    }
+
+    row.classList.add("saved");
+    const greenBtn = document.createElement("button");
+    greenBtn.textContent = "✔ " + (index + 1);
+    greenBtn.classList.add("greenButton");
+    row.cells[0].innerHTML = "";
+    row.cells[0].appendChild(greenBtn);
+  }
+
+  window.onload = () => {
+    const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const savedIndexes = JSON.parse(localStorage.getItem(SAVED_ROWS_KEY)) || [];
+
+    for (let i = 0; i < savedData.length; i++) {
+      addRow();
+      const row = document.querySelectorAll("#dataTable tbody tr")[i];
+
+      if (savedIndexes.includes(i)) {
+        const inputs = row.querySelectorAll("input, select");
+        savedData[i].forEach((val, idx) => {
+          if (inputs[idx]) {
+            inputs[idx].value = idx === 3 ? "METHNOL" : val;
+          }
+        });
+
+        row.classList.add("saved");
+        const greenBtn = document.createElement("button");
+        greenBtn.textContent = "✔ " + (i + 1);
+        greenBtn.classList.add("greenButton");
+        row.cells[0].innerHTML = "";
+        row.cells[0].appendChild(greenBtn);
+      }
+    }
+  };
+
+  function openRegister() {
+    const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    let html = `
+      <html>
+      <head>
+        <title>Register View</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #999;
+            padding: 10px;
+            text-align: center;
+          }
+          th {
+            background-color: #eee;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Saved Register</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>S.No.</th>
+              <th>Date</th>
+              <th>Vehicle No.</th>
+              <th>Material Name</th>
+              <th>Outside Wt.</th>
+              <th>100MT Weight(Kg.)</th>
+              <th>Name</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    savedData.forEach((row, index) => {
+      if (row) {
+        html += `<tr><td>${index + 1}</td>`;
+        row.forEach(col => {
+          html += `<td>${col}</td>`;
+        });
+        html += `</tr>`;
+      }
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </body>
+      </html>`;
+
+    const win = window.open("", "_blank");
+    win.document.write(html);
+  }
+
+  function exportToCSV() {
+    const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let csv = 'S.No.,Date,Vehicle No.,Material Name,Outside Weight(Kg.),100MT Weight(Kg.),Name\n';
+
+    savedData.forEach((rowData, index) => {
+      if (rowData) {
+        csv += `${index + 1},${rowData.join(',')}\n`;
+      }
+    });
+
+    const hiddenElement = document.createElement('a');
+    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+    hiddenElement.target = '_blank';
+    hiddenElement.download = 'register.csv';
+    hiddenElement.click();
+  }
+</script>
+
+</body>
+</html>

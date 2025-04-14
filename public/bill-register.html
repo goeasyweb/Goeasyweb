@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wood Bill Submit Register</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 10px;
+      text-align: center;
+    }
+    .saved {
+      background-color: #00ff40;
+    }
+    .greenButton {
+      background-color: green;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      font-weight: bold;
+    }
+    button.saveBtn {
+      padding: 6px 12px;
+    }
+    #messageBox {
+      display: none;
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Wood Bill Submit Register</h2>
+
+<!-- Add Row Button -->
+<button onclick="addRow()">Add Row</button>
+
+<!-- Success Message -->
+<div id="messageBox"></div>
+
+<!-- Table -->
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th>S.No.</th>
+      <th>SAP DATE</th>
+      <th>BILL SUBMIT DATE</th>
+      <th>QUANTITY</th>
+      <th>SUBMIT TIME</th>
+      <th>RECEIVER NAME</th>
+      <th>NAME OF DEPOSITER</th>
+      <th>PLANT</th>
+      <th>Save</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let currentRow = 0;
+
+  function createDropdown() {
+    return `
+      <select>
+        <option value="">Select</option>
+        <option value="C34A">C34A</option>
+        <option value="C2">C2</option>
+        <option value="C3">C3</option>
+      </select>
+    `;
+  }
+
+  function showMessage(msg) {
+    const box = document.getElementById("messageBox");
+    box.textContent = msg;
+    box.style.display = "block";
+    setTimeout(() => {
+      box.style.display = "none";
+    }, 2000);
+  }
+
+  function addRow(prefillData = null) {
+    const table = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+    const row = table.insertRow();
+    const rowIndex = currentRow;
+
+    row.insertCell(0).textContent = rowIndex + 1;
+    row.insertCell(1).innerHTML = `<input type="date" value="${prefillData?.sapDate || ''}">`;
+    row.insertCell(2).innerHTML = `<input type="date" value="${prefillData?.billSubmitDate || ''}">`;
+    row.insertCell(3).innerHTML = `<input type="number" min="0" value="${prefillData?.quantity || ''}">`;
+    row.insertCell(4).innerHTML = `<input type="time" value="${prefillData?.submitTime || ''}">`;
+    row.insertCell(5).innerHTML = `<input type="text" value="${prefillData?.receiver || ''}" oninput="this.value = this.value.toUpperCase()">`;
+    row.insertCell(6).innerHTML = `<input type="text" value="${prefillData?.depositer || ''}" oninput="this.value = this.value.toUpperCase()">`;
+    
+    const dropdown = document.createElement("select");
+    ["", "C34A", "C2", "C3"].forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt || "Select";
+      if (opt === prefillData?.plant) option.selected = true;
+      dropdown.appendChild(option);
+    });
+    const plantCell = row.insertCell(7);
+    plantCell.appendChild(dropdown);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save";
+    saveBtn.classList.add("saveBtn");
+    saveBtn.onclick = () => saveRow(row);
+    row.insertCell(8).appendChild(saveBtn);
+
+    if (prefillData?._id) {
+      row.dataset.id = prefillData._id;
+      row.classList.add("saved");
+      const greenBtn = document.createElement("button");
+      greenBtn.textContent = "✔ " + (rowIndex + 1);
+      greenBtn.classList.add("greenButton");
+      row.cells[0].innerHTML = "";
+      row.cells[0].appendChild(greenBtn);
+    }
+
+    currentRow++;
+  }
+
+  async function saveRow(row) {
+    const inputs = row.querySelectorAll("input, select");
+
+    const data = {
+      sapDate: inputs[0].value,
+      billSubmitDate: inputs[1].value,
+      quantity: +inputs[2].value || 0,
+      submitTime: inputs[3].value,
+      receiver: inputs[4].value.toUpperCase(),
+      depositer: inputs[5].value.toUpperCase(),
+      plant: inputs[6].value
+    };
+
+    try {
+      const res = await fetch("/api/wood-bill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (res.ok) {
+        row.classList.add("saved");
+        const greenBtn = document.createElement("button");
+        greenBtn.textContent = "✔";
+        greenBtn.classList.add("greenButton");
+        row.cells[0].innerHTML = "";
+        row.cells[0].appendChild(greenBtn);
+        showMessage("Saved successfully");
+      } else {
+        alert("Failed: " + result.message);
+      }
+    } catch (err) {
+      alert("Error saving data.");
+      console.error(err);
+    }
+  }
+
+  async function loadSavedData() {
+    try {
+      const res = await fetch("/api/wood-bill");
+      const bills = await res.json();
+      bills.forEach(addRow);
+    } catch (err) {
+      console.error("Failed to load saved data:", err);
+    }
+  }
+
+  window.onload = loadSavedData;
+</script>
+
+</body>
+</html>
