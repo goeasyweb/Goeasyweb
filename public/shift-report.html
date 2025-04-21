@@ -3,78 +3,22 @@
 <head>
   <title>SHIFT REPORT</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-    }
-    .filters {
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-    .filters label {
-      margin-right: 10px;
-      font-weight: bold;
-    }
-    .filters input, .filters select {
-      margin-right: 20px;
-      padding: 5px;
-    }
-    .user-info {
-      text-align: right;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    .user-info input {
-      padding: 5px;
-      text-transform: uppercase;
-      font-weight: normal;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
-      text-align: center;
-    }
-    input[type="number"] {
-      width: 100px;
-    }
-    td[colspan] {
-      font-weight: bold;
-      background: #e9e9e9;
-    }
-    .highlight {
-      background: #f0fdf0;
-    }
-    .total-sap-row {
-      background: #d8e9ff;
-      font-weight: bold;
-    }
-    .save-btn {
-      margin-top: 20px;
-      display: block;
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    .save-btn:hover {
-      background: #45a049;
-    }
+    /* Your existing CSS remains unchanged */
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    h2 { text-align: center; }
+    .filters { display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 20px; }
+    .filters label { margin-right: 10px; font-weight: bold; }
+    .filters input, .filters select { margin-right: 20px; padding: 5px; }
+    .user-info { text-align: right; margin-bottom: 10px; font-weight: bold; }
+    .user-info input { padding: 5px; text-transform: uppercase; font-weight: normal; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    input[type="number"] { width: 100px; }
+    td[colspan] { font-weight: bold; background: #e9e9e9; }
+    .highlight { background: #f0fdf0; }
+    .total-sap-row { background: #d8e9ff; font-weight: bold; }
+    .save-btn { margin-top: 20px; display: block; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    .save-btn:hover { background: #45a049; }
   </style>
 </head>
 <body>
@@ -156,14 +100,10 @@
 <button class="save-btn" onclick="saveReport()">SAVE REPORT</button>
 
 <script>
-  // Set today's date automatically
   document.getElementById("reportDate").valueAsDate = new Date();
+  const user = localStorage.getItem("loggedInUser") || "";
+  document.getElementById("shiftPerson").value = user.toUpperCase();
 
-  // Set shift person name from localStorage if available
-  const loggedUser = (localStorage.getItem("loggedInUser") || "").toUpperCase();
-  document.getElementById("shiftPerson").value = loggedUser;
-
-  // Calculate SAP and token logic
   const calculateAll = () => {
     const woodReceived = parseInt(document.getElementById("woodReceived").value) || 0;
     const woodSAP = parseInt(document.getElementById("woodSAP").value) || 0;
@@ -186,18 +126,15 @@
     document.getElementById("issuedTokens").textContent = issued;
   };
 
-  // Recalculate on number input change
   document.querySelectorAll("input[type=number]").forEach(input => {
     input.addEventListener("input", calculateAll);
   });
 
-  // Always uppercase for Shift Person name
   document.getElementById("shiftPerson").addEventListener("input", function () {
     this.value = this.value.toUpperCase();
   });
 
-  // Save logic
-  function saveReport() {
+  async function saveReport() {
     calculateAll();
 
     const data = {
@@ -226,12 +163,24 @@
       issuedTokens: document.getElementById("issuedTokens").textContent
     };
 
-    let reports = JSON.parse(localStorage.getItem("shiftReports") || "[]");
-    reports.push(data);
-    localStorage.setItem("shiftReports", JSON.stringify(reports));
+    try {
+      const response = await fetch('/api/reports/shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-    alert("Shift Report Saved Successfully!");
-    window.location.href = "view.html"; // or admin.html depending on your setup
+      const result = await response.json();
+      if (response.ok) {
+        alert("Shift Report Saved Successfully!");
+        window.location.href = "view.html";
+      } else {
+        alert("Error: " + result.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save report. Server error.");
+    }
   }
 </script>
 
