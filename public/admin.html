@@ -4,7 +4,62 @@
   <title>Admin Panel</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* [Your existing CSS styles remain unchanged] */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .container {
+      padding: 20px;
+    }
+    .section {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h3 {
+      margin-top: 0;
+    }
+    input, select, button {
+      margin: 5px 5px 10px 0;
+      padding: 8px;
+    }
+    .red {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #3498db;
+      color: white;
+    }
+    footer {
+      text-align: center;
+      padding: 10px;
+      background: #2c3e50;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -15,7 +70,6 @@
 </header>
 
 <div class="container">
-
   <!-- User Management -->
   <div class="section">
     <h3>User Management</h3>
@@ -57,7 +111,6 @@
 
   <!-- Report Sections -->
   <div id="reportSections"></div>
-
 </div>
 
 <footer>
@@ -80,7 +133,7 @@
   function logout() {
     fetch('/api/logout', { method: 'POST' })
       .then(() => window.location.href = 'index.html')
-      .catch(err => alert('Logout failed'));
+      .catch(() => alert('Logout failed'));
   }
 
   function createUser() {
@@ -104,7 +157,7 @@
       .then(res => res.json())
       .then(users => {
         let table = `<tr><th>Username</th><th>Change</th><th>Delete</th></tr>`;
-        users.forEach((u, i) => {
+        users.forEach(u => {
           table += `<tr>
             <td>${u.username}</td>
             <td><button onclick="changePassword('${u.username}')">Change</button></td>
@@ -146,6 +199,7 @@
     const file = document.getElementById("excelFile").files[0];
     const category = document.getElementById("categorySelect").value;
     if (!file || !file.name.endsWith(".xlsx")) return alert("Upload a valid .xlsx file");
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
@@ -183,10 +237,7 @@
     formData.append('image', file);
     fetch('/api/image', {
       method: 'POST',
-      body
-::contentReference[oaicite:0]{index=0}
- 
-      : formData
+      body: formData
     })
     .then(res => res.json())
     .then(data => {
@@ -243,7 +294,6 @@
     if (date) params.append("date", date);
     if (plant) params.append("plant", plant);
     if (shift) params.append("shift", shift);
-
     if ([...params].length) url += `?${params.toString()}`;
 
     fetch(url)
